@@ -57,7 +57,7 @@ var panelTemplate = `
   </div>
 `;
 
-module.directive('grafanaPanel', function($rootScope, $document) {
+module.directive('grafanaPanel', function($rootScope, $document, $timeout) {
   return {
     restrict: 'E',
     template: panelTemplate,
@@ -305,8 +305,7 @@ module.directive('panelHelpCorner', function($rootScope) {
         </span>
       </span>
     `,
-    link: function(scope, elem) {
-    }
+    link: function(scope, elem) {}
   };
 });
 

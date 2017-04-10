@@ -37,6 +37,7 @@ export class PanelCtrl {
   timing: any;
   skippedLastRefresh: boolean;
   isPanelVisible: any;
+  panelHint: string;
 
   constructor($scope, $injector) {
     this.$injector = $injector;
@@ -63,6 +64,7 @@ export class PanelCtrl {
     // with newly added panels
     if (this.panel.isNew) {
       delete this.panel.isNew;
+      this.panelHint = "<hint-tooltip>Click here to open panel menu</hint-tooltip>";
     }
   }
 

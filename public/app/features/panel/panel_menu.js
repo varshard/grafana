@@ -3,13 +3,14 @@ define([
   'jquery',
   'lodash',
   'tether',
+  'tether-drop',
 ],
-function (angular, $, _, Tether) {
+function (angular, $, _, Tether, Drop) {
   'use strict';
 
   angular
     .module('grafana.directives')
-    .directive('panelMenu', function($compile) {
+    .directive('panelMenu', function($compile, $timeout) {
       var linkTemplate =
           '<span class="panel-title drag-handle pointer">' +
             '<span class="icon-gf panel-alert-icon"></span>' +
@@ -68,6 +69,7 @@ function (angular, $, _, Tether) {
           var timeout = null;
           var $menu = null;
           var teather;
+          var panelHintDrop;
 
           elem.append($link);
 
@@ -100,6 +102,11 @@ function (angular, $, _, Tether) {
           }
 
           var showMenu = function(e) {
+            if (panelHintDrop) {
+              panelHintDrop.destroy();
+              panelHintDrop = null;
+            }
+
             // if menu item is clicked and menu was just removed from dom ignore this event
             if (!$.contains(document, e.target)) {
               return;
@@ -151,6 +158,38 @@ function (angular, $, _, Tether) {
 
             dismiss(2200);
           };
+
+          $scope.$watch('ctrl.panelHint', function() {
+            if (!ctrl.panelHint) {
+              return;
+            }
+
+            $timeout(function() {
+              panelHintDrop = new Drop({
+                target: elem[0],
+                content: function() {
+                  var panelHtml = angular.element(ctrl.panelHint);
+                  $compile(panelHtml)($scope);
+                  console.log(panelHtml.html());
+                  return panelHtml[0];
+                },
+                classes: 'drop-help',
+                openOn: 'click',
+                tetherOptions: {
+                  attachment: 'bottom center',
+                  targetAttachment: 'top center',
+                  constraints: [
+                    {
+                      to: 'window',
+                      attachment: 'together',
+                      pin: true
+                    }
+                  ],
+                }
+              });
+              panelHintDrop.open();
+            }, 100);
+          });
 
           elem.click(showMenu);
           $compile(elem.contents())($scope);
