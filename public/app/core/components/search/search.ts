@@ -18,6 +18,7 @@ export class SearchCtrl {
   showImport: boolean;
   dismiss: any;
   ignoreClose: any;
+  searchMode = 'browse';
 
   /** @ngInject */
   constructor(private $scope, private $location, private $timeout, private backendSrv, private contextSrv, private $rootScope) {
@@ -101,6 +102,7 @@ export class SearchCtrl {
     var localSearchId = this.currentSearchId;
 
     this.query.browseMode = this.queryHasNoFilters();
+    this.searchMode = this.queryHasNoFilters() ? 'browse': 'search';
 
     return this.backendSrv.search(this.query).then((results) => {
       if (localSearchId < this.currentSearchId) { return; }
