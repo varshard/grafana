@@ -3,6 +3,13 @@
 import _ from 'lodash';
 import moment from 'moment';
 import kbn from 'app/core/utils/kbn';
+import $ from 'jquery';
+import JSONFormatter from 'json-formatter-js';
+
+interface FormatJSONResult {
+  success: boolean;
+  value: string;
+}
 
 export class TableRenderer {
   formatters: any[];
@@ -127,6 +134,17 @@ export class TableRenderer {
     return this.formatters[colIndex] ? this.formatters[colIndex](value) : value;
   }
 
+  getMatchedStyle(colIndex: number) {
+    for (let i = 0; i < this.panel.styles.length; i++) {
+      let style = this.panel.styles[i];
+      let column = this.table.columns[colIndex];
+      var regex = kbn.stringToJsRegex(style.pattern);
+      if (column.text.match(regex)) {
+        return style;
+      }
+    }
+  }
+
   renderCell(columnIndex, value, addWidthHack = false) {
     value = this.formatColumnValue(columnIndex, value);
     var style = '';
@@ -153,21 +171,70 @@ export class TableRenderer {
       this.table.columns[columnIndex].hidden = false;
     }
 
-    return '<td' + style + '>' + value + widthHack + '</td>';
+    function formatCellValue(value: string): any {
+      const cell = $('<td' + style + '></td>');
+
+      function isJSON(value: string): boolean {
+        try {
+          JSON.parse(_.unescape(value));
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function toggleView(button, showedView, hiddenView) {
+          $('.switcher').removeClass('active focus');
+          button.addClass('active focus');
+
+          showedView.show();
+          hiddenView.hide();
+        }
+
+      // To prevent a number from being stringified
+      if (isJSON(value) && isNaN(Number.parseFloat(value))) {
+        const json = JSON.parse(_.unescape(value));
+        const jsonTree = $('<div class="json-view"></div>')
+          .append(new JSONFormatter(json, 1, {
+            theme: 'dark'
+          }).render());
+        const jsonText = $('<pre class="text-view" style="display: none;">' + JSON.stringify(json, null, '  ') + '</pre>');
+        const jsonViewer = $('<div class="json-viewer"></div>');
+        const viewSwitcherWrapper = $('<div class="json-view-switcher"></div>');
+        const textSwitcher = $('<button class="switcher text-switcher btn btn-inverse btn-mini">Text</button>');
+        const jsonSwitcher = $('<button class="switcher json-switcher btn btn-inverse btn-mini active focus">JSON</button>')
+          .click(function() {
+            toggleView($(this), jsonTree, jsonText);
+          });
+        textSwitcher.click(function() {
+          toggleView($(this), jsonText, jsonTree);
+        });
+
+        viewSwitcherWrapper.append(jsonSwitcher, textSwitcher);
+        jsonViewer
+          .append(viewSwitcherWrapper)
+          .append(jsonTree)
+          .append(jsonText);
+        return cell.append(jsonViewer);
+      } else {
+        return cell.html(value + widthHack);
+      }
+    }
+    return formatCellValue(value);
   }
 
   render(page) {
     let pageSize = this.panel.pageSize || 100;
     let startPos = page * pageSize;
     let endPos = Math.min(startPos + pageSize, this.table.rows.length);
-    var html = "";
+    var html = [];
 
     for (var y = startPos; y < endPos; y++) {
       let row = this.table.rows[y];
-      let cellHtml = '';
+      let cellHtml = [];
       let rowStyle = '';
       for (var i = 0; i < this.table.columns.length; i++) {
-        cellHtml += this.renderCell(i, row[i], y === startPos);
+        cellHtml.push(this.renderCell(i, row[i], y === startPos));
       }
 
       if (this.colorState.row) {
@@ -175,7 +242,9 @@ export class TableRenderer {
         this.colorState.row = null;
       }
 
-      html += '<tr ' + rowStyle + '>' + cellHtml + '</tr>';
+      let htmlRow = $('<tr ' + rowStyle + '></tr>');
+      htmlRow.append(cellHtml);
+      html.push(htmlRow);
     }
 
     return html;

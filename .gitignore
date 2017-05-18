@@ -29,7 +29,7 @@ public/css/*.min.css
 .vscode/
 
 /data/*
-/bin/*
+#/bin/*
 
 conf/custom.ini
 fig.yml
